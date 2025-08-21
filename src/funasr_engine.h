@@ -1,7 +1,7 @@
 #pragma once
 #include <memory>
 #include <string>
-#include <vector>
+#include <vector>  
 #include <map>
 #include <thread>
 #include <atomic>
@@ -96,35 +96,55 @@ public:
     };
     
     /**
-     * 引擎配置
+     * 引擎配置 - 修复C++17默认成员初始化器问题
      */
     struct Config {
         // GPU配置
-        std::string device = "cuda:0";              // CUDA设备
+        std::string device;
         
-        // 音频文件配置
-        std::string audio_files_dir = "./audio_files";  // 音频文件目录
-        int max_test_files = 100;                   // 最大测试文件数 (从500个中选择)
+        // 音频文件配置  
+        std::string audio_files_dir;
+        int max_test_files;
         
         // 测试配置
-        bool enable_offline_test = true;            // 启用离线识别测试
-        bool enable_streaming_test = true;          // 启用流式识别测试
-        bool enable_two_pass_test = true;           // 启用2Pass模式测试
-        bool enable_concurrent_test = true;         // 启用并发测试
-        int max_concurrent_sessions = 4;            // 最大并发数
+        bool enable_offline_test;
+        bool enable_streaming_test;
+        bool enable_two_pass_test;
+        bool enable_concurrent_test;
+        int max_concurrent_sessions;
         
         // FunASR模型配置 (标准ModelScope路径)
-        std::string streaming_model = "iic/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-online";
-        std::string streaming_revision = "v2.0.4";
-        std::string offline_model = "iic/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-pytorch";
-        std::string offline_revision = "v2.0.4";
-        std::string vad_model = "iic/speech_fsmn_vad_zh-cn-16k-common-pytorch";
-        std::string vad_revision = "v2.0.4";
-        std::string punc_model = "iic/punc_ct-transformer_zh-cn-common-vad_realtime-vocab272727";
-        std::string punc_revision = "v2.0.4";
+        std::string streaming_model;
+        std::string streaming_revision;
+        std::string offline_model;
+        std::string offline_revision;
+        std::string vad_model;
+        std::string vad_revision;
+        std::string punc_model;
+        std::string punc_revision;
+        
+        // 构造函数提供所有默认值
+        Config() :
+            device("cuda:0"),
+            audio_files_dir("./audio_files"),
+            max_test_files(100),
+            enable_offline_test(true),
+            enable_streaming_test(true),
+            enable_two_pass_test(true),
+            enable_concurrent_test(true),
+            max_concurrent_sessions(4),
+            streaming_model("iic/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-online"),
+            streaming_revision("v2.0.4"),
+            offline_model("iic/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-pytorch"),
+            offline_revision("v2.0.4"),
+            vad_model("iic/speech_fsmn_vad_zh-cn-16k-common-pytorch"),
+            vad_revision("v2.0.4"),
+            punc_model("iic/punc_ct-transformer_zh-cn-common-vad_realtime-vocab272727"),
+            punc_revision("v2.0.4")
+        {}
     };
 
-    explicit FunASREngine(const Config& config = Config{});
+    explicit FunASREngine(const Config& config = Config());
     ~FunASREngine();
 
     /**

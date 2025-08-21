@@ -1,6 +1,6 @@
 #include "funasr_engine.h"
 #include <random>
-#include <algorithm>
+#include <cmath>
 #include <future>
 
 FunASREngine::FunASREngine(const Config& config) : config_(config) {
@@ -364,12 +364,14 @@ FunASREngine::RecognitionResult FunASREngine::StreamingRecognize(
         // 4. 执行流式推理
         py::object py_result = streaming_model_.attr("generate")(**kwargs);
         
-        // 5. 更新缓存状态 (重要：保持流式连续性)
+        // 5. 更新缓存状态 (重要：保持流式连续性) - 修复pybind11对象赋值问题
         if (kwargs.contains("cache")) {
             py::dict updated_cache = kwargs["cache"];
             session.streaming_cache.clear();
             for (auto item : updated_cache) {
-                session.streaming_cache[item.first.cast<std::string>()] = item.second;
+                // 修复：使用reinterpret_borrow显式转换handle到object
+                session.streaming_cache[item.first.cast<std::string>()] = 
+                    py::reinterpret_borrow<py::object>(item.second);
             }
         }
         
@@ -393,7 +395,7 @@ FunASREngine::RecognitionResult FunASREngine::StreamingRecognize(
         
         Logger::Info("流式识别: '{}', 耗时: {:.1f}ms, RTF: {:.4f}", 
                     result.text, result.inference_time_ms, current_metrics_.streaming_rtf);
-        
+                    
     } catch (const std::exception& e) {
         Logger::Error("流式识别异常: {}", e.what());
         current_metrics_.total_requests++;
@@ -517,12 +519,14 @@ FunASREngine::VADResult FunASREngine::DetectVoiceActivity(
         // 执行VAD推理
         py::object vad_py_result = vad_model_.attr("generate")(**kwargs);
         
-        // 更新缓存
+        // 更新缓存 - 修复pybind11对象赋值问题
         if (kwargs.contains("cache")) {
             py::dict updated_cache = kwargs["cache"];
             vad_cache.clear();
             for (auto item : updated_cache) {
-                vad_cache[item.first.cast<std::string>()] = item.second;
+                // 修复：使用reinterpret_borrow显式转换
+                vad_cache[item.first.cast<std::string>()] = 
+                    py::reinterpret_borrow<py::object>(item.second);
             }
         }
         
@@ -560,12 +564,14 @@ std::string FunASREngine::AddPunctuation(const std::string& text,
         // 执行标点符号恢复
         py::object punc_result = punc_model_.attr("generate")(**kwargs);
         
-        // 更新缓存
+        // 更新缓存 - 修复pybind11对象赋值问题
         if (kwargs.contains("cache")) {
             py::dict updated_cache = kwargs["cache"];
             punc_cache.clear();
             for (auto item : updated_cache) {
-                punc_cache[item.first.cast<std::string>()] = item.second;
+                // 修复：使用reinterpret_borrow显式转换
+                punc_cache[item.first.cast<std::string>()] = 
+                    py::reinterpret_borrow<py::object>(item.second);
             }
         }
         
@@ -640,7 +646,8 @@ FunASREngine::VADResult FunASREngine::ParseVADResult(
                     py::list segments = first_result["value"];
                     
                     for (auto segment : segments) {
-                        py::list seg_pair = segment;
+                        // 修复：显式转换handle到list
+                        py::list seg_pair = py::reinterpret_borrow<py::list>(segment);
                         if (seg_pair.size() >= 2) {
                             int64_t start = seg_pair[0].cast<int64_t>();
                             int64_t end = seg_pair[1].cast<int64_t>();
@@ -738,7 +745,7 @@ bool FunASREngine::RunPerformanceTests() {
     return true;
 }
 
-FunASREngine::PerformanceMetrics FunASREngine::TestOfflinePerformance() {
+PerformanceMetrics FunASREngine::TestOfflinePerformance() {
     PerformanceMetrics metrics;
     
     // 选择前20个文件进行离线测试
@@ -789,7 +796,7 @@ FunASREngine::PerformanceMetrics FunASREngine::TestOfflinePerformance() {
     return metrics;
 }
 
-FunASREngine::PerformanceMetrics FunASREngine::TestStreamingPerformance() {
+PerformanceMetrics FunASREngine::TestStreamingPerformance() {
     PerformanceMetrics metrics;
     
     // 选择前15个文件进行流式测试
@@ -842,7 +849,7 @@ FunASREngine::PerformanceMetrics FunASREngine::TestStreamingPerformance() {
     return metrics;
 }
 
-FunASREngine::PerformanceMetrics FunASREngine::TestTwoPassPerformance() {
+PerformanceMetrics FunASREngine::TestTwoPassPerformance() {
     PerformanceMetrics metrics;
     
     // 选择10个文件进行2Pass测试
@@ -888,7 +895,7 @@ FunASREngine::PerformanceMetrics FunASREngine::TestTwoPassPerformance() {
     return metrics;
 }
 
-FunASREngine::PerformanceMetrics FunASREngine::TestConcurrentPerformance() {
+PerformanceMetrics FunASREngine::TestConcurrentPerformance() {
     PerformanceMetrics metrics;
     
     const int num_workers = config_.max_concurrent_sessions;

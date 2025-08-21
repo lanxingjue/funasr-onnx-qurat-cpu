@@ -7,6 +7,7 @@
 #include <sstream>
 #include <iomanip>
 #include <filesystem>
+#include <algorithm>
 
 /**
  * 简化的日志工具
@@ -39,6 +40,7 @@ public:
     }
 
 private:
+    // 修复：将定义移到cpp文件，这里只声明
     static Level current_level_;
     
     template<typename... Args>
@@ -76,7 +78,8 @@ private:
     }
 };
 
-Logger::Level Logger::current_level_ = Logger::INFO;
+// 修复：移除这行定义，避免多重定义
+// Logger::Level Logger::current_level_ = Logger::INFO;
 
 /**
  * 高精度计时器
@@ -118,8 +121,6 @@ public:
     
     /**
      * 读取WAV文件
-     * @param file_path WAV文件路径
-     * @return 音频数据，读取失败返回空数据
      */
     static AudioData ReadWavFile(const std::string& file_path) {
         AudioData audio_data;
@@ -196,7 +197,6 @@ public:
             // 重采样到16kHz (如果需要)
             if (audio_data.sample_rate != 16000) {
                 Logger::Warn("音频采样率为{}Hz，FunASR需要16kHz，建议预处理音频文件", audio_data.sample_rate);
-                // 这里可以添加简单的重采样逻辑，或者要求用户预处理
             }
             
             // 计算音频时长
